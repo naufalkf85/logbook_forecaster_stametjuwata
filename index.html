@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logbook Forecaster Juwata</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Signature Pad -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+    <style>
+        /* Desain Background Modern */
+        body { 
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        .custom-dropdown-list { max-height: 200px; overflow-y: auto; z-index: 50; }
+        .signature-wrapper { 
+            border: 2px dashed #94a3b8; 
+            border-radius: 0.75rem; 
+            background: #f8fafc; 
+            position: relative; 
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        canvas#signaturePad { width: 100%; height: 100%; border-radius: 0.75rem; cursor: crosshair; }
+    </style>
+</head>
+<body class="text-gray-800 pb-20">
+
+<div class="max-w-5xl mx-auto pt-10 px-4">
+    <!-- Header -->
+    <div class="text-center mb-10">
+        <div class="inline-block p-4 bg-white rounded-full shadow-md mb-3">
+            <i class="fa-solid fa-cloud-sun text-4xl text-blue-600"></i>
+        </div>
+        <!-- Penambahan pb-2 dan leading-normal agar huruf g tidak terpotong -->
+        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-800 to-cyan-600 tracking-tight pb-2 leading-normal">Logbook Forecaster</h1>
+        <h2 class="text-lg text-gray-700 font-semibold mt-0 tracking-wide">Stasiun Meteorologi Kelas II Juwata</h2>
+    </div>
+
+    <!-- Form Section -->
+    <div class="glass-card rounded-2xl p-6 md:p-8 mb-10">
+        <h3 class="text-xl font-bold border-b-2 border-blue-100 pb-3 mb-6 text-blue-800">
+            <i class="fa-solid fa-pen-to-square mr-2"></i> Form Pengisian
+        </h3>
+        
+        <form id="logbookForm" class="space-y-6">
+            <!-- Informasi Dasar -->
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Nama Forecaster -->
+                <div class="relative flex-1">
+                    <label class="block text-sm font-semibold mb-1 text-gray-700">Nama Forecaster <span class="text-red-500">*</span></label>
+                    <input type="text" id="inputNama" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-sm" placeholder="Ketik nama atau pilih..." autocomplete="off" required>
+                    <div id="dropdownNama" class="hidden absolute w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-xl custom-dropdown-list"></div>
+                </div>
+
+                <!-- Tanggal -->
+                <div class="w-full md:w-48">
+                    <label class="block text-sm font-semibold mb-1 text-gray-700">Tanggal Dinas <span class="text-red-500">*</span></label>
+                    <input type="date" id="inputTanggal" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-sm" required>
+                </div>
+            </div>
+
+            <!-- Pemilihan Sif -->
+            <div>
+                <label class="block text-sm font-semibold mb-2 text-gray-700">Pilih Sif <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label class="border-2 border-gray-200 rounded-xl p-4 cursor-pointer flex items-center gap-3 hover:bg-blue-50 hover:border-blue-300 transition-all">
+                        <input type="radio" name="sif" value="Pagi" class="w-5 h-5 text-blue-600 focus:ring-blue-500" onchange="toggleSif('Pagi')" required>
+                        <div>
+                            <div class="font-bold text-gray-800">Pagi</div>
+                            <div class="text-xs text-gray-500 font-medium">07.30 - 14.00 WITA</div>
+                        </div>
+                    </label>
+                    <label class="border-2 border-gray-200 rounded-xl p-4 cursor-pointer flex items-center gap-3 hover:bg-blue-50 hover:border-blue-300 transition-all">
+                        <input type="radio" name="sif" value="Siang" class="w-5 h-5 text-blue-600 focus:ring-blue-500" onchange="toggleSif('Siang')">
+                        <div>
+                            <div class="font-bold text-gray-800">Siang</div>
+                            <div class="text-xs text-gray-500 font-medium">13.30 - 20.00 WITA</div>
+                        </div>
+                    </label>
+                    <label class="border-2 border-gray-200 rounded-xl p-4 cursor-pointer flex items-center gap-3 hover:bg-blue-50 hover:border-blue-300 transition-all">
+                        <input type="radio" name="sif" value="Malam" class="w-5 h-5 text-blue-600 focus:ring-blue-500" onchange="toggleSif('Malam')">
+                        <div>
+                            <div class="font-bold text-gray-800">Malam</div>
+                            <div class="text-xs text-gray-500 font-medium">19.30 - 08.00 WITA</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Dynamic Fields Container -->
+            <div id="dynamicFields" class="bg-blue-50/50 rounded-xl p-5 hidden space-y-6 border border-blue-100 shadow-inner">
+                
+                <!-- TUGAS UTAMA SECTION -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                    <label class="block text-sm font-bold text-gray-800 mb-2 border-b pb-2"><i class="fa-solid fa-layer-group mr-2 text-blue-500"></i>Tugas Utama</label>
+                    
+                    <!-- Flight Document (opsional) -->
+                    <div class="relative">
+                        <label class="block text-sm font-semibold mb-1 text-gray-700">Pembuatan Flight Document <span class="text-xs font-normal text-gray-500">(opsional, cth: GA612)</span></label>
+                        <input type="text" id="inputFlight" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="Ketik No Penerbangan..." autocomplete="off">
+                        <div id="dropdownFlight" class="hidden absolute w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-xl custom-dropdown-list"></div>
+                        <div id="selectedFlights" class="flex flex-wrap gap-2 mt-3"></div> 
+                    </div>
+
+                    <!-- Fields Sif Pagi -->
+                    <div id="fieldsPagi" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Expertize Meteorologi Maritim <span class="text-red-500">*</span></label>
+                            <select id="pgExpertize" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Selesai">Selesai</option>
+                                <option value="Catatan">Catatan (Ketik di bawah)</option>
+                            </select>
+                            <input type="text" id="pgExpertizeNote" class="w-full border border-gray-300 rounded-lg p-2.5 mt-2 hidden" placeholder="Catatan Expertize...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Peringatan Dini Gelombang Tinggi <span class="text-red-500">*</span></label>
+                            <select id="pgGelombang" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Sudah dibuat & diseminasikan">Sudah dibuat & diseminasikan</option>
+                                <option value="Tidak ada potensi">Tidak ada potensi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Mengirim TAF 06:00 UTC <span class="text-red-500">*</span></label>
+                            <select id="pgTAF" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Terkirim">Terkirim</option>
+                                <option value="Belum Terkirim">Belum Terkirim</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fields Sif Siang -->
+                    <div id="fieldsSiang" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Expertize Digital Forecast <span class="text-red-500">*</span></label>
+                            <select id="sgExpertize" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Selesai">Selesai</option>
+                                <option value="Catatan">Catatan (Ketik di bawah)</option>
+                            </select>
+                            <input type="text" id="sgExpertizeNote" class="w-full border border-gray-300 rounded-lg p-2.5 mt-2 hidden" placeholder="Catatan Expertize...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Mengirim TAF 12:00 UTC <span class="text-red-500">*</span></label>
+                            <select id="sgTAF" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Terkirim">Terkirim</option>
+                                <option value="Belum Terkirim">Belum Terkirim</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fields Sif Malam -->
+                    <div id="fieldsMalam" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Expertize Digital Forecast <span class="text-red-500">*</span></label>
+                            <select id="mlExpertize" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Selesai">Selesai</option>
+                                <option value="Catatan">Catatan (Ketik di bawah)</option>
+                            </select>
+                            <input type="text" id="mlExpertizeNote" class="w-full border border-gray-300 rounded-lg p-2.5 mt-2 hidden" placeholder="Catatan Expertize...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Peringatan Dini Cuaca Tiga Harian Kaltara <span class="text-red-500">*</span></label>
+                            <select id="mlCuaca3" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Sudah">Sudah</option>
+                                <option value="Belum">Belum</option>
+                            </select>
+                            <input type="text" id="mlCuaca3Note" class="w-full border border-gray-300 rounded-lg p-2.5 mt-2" placeholder="Catatan opsional...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Mengisi Prospek Cuaca <span class="text-red-500">*</span></label>
+                            <select id="mlProspek" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Pilih --</option>
+                                <option value="Sudah">Sudah</option>
+                                <option value="Belum">Belum</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">TAF 18:00 UTC <span class="text-red-500">*</span></label>
+                                <select id="mlTAF18" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Terkirim">Terkirim</option>
+                                    <option value="Belum Terkirim">Belum Terkirim</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">TAF 00:00 UTC <span class="text-red-500">*</span></label>
+                                <select id="mlTAF00" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Terkirim">Terkirim</option>
+                                    <option value="Belum Terkirim">Belum Terkirim</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Global Fields (Nowcasting & AD/WS Warning) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3 border-t border-gray-100">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Pembuatan Nowcasting <span class="text-red-500">*</span></label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" id="nowcasting" min="0" class="w-24 border border-gray-300 rounded-lg p-2.5 text-center focus:ring-2 focus:ring-blue-400" placeholder="0" required>
+                                <span class="font-medium text-gray-600 text-sm">Kali update</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">AD/WS WARNING <span class="text-red-500">*</span></label>
+                            <div class="flex items-center gap-3">
+                                <!-- Status selalu terisi (default Tidak Ada) sehingga tidak perlu ditambahkan "Pilih" -->
+                                <select id="adwsStatus" class="border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400 w-32" required>
+                                    <option value="Tidak Ada">Tidak Ada</option>
+                                    <option value="AD">AD</option>
+                                    <option value="WS">WS</option>
+                                </select>
+                                <div id="adwsUpdateContainer" class="hidden items-center gap-2">
+                                    <input type="number" id="adwsUpdate" min="0" class="w-20 border border-gray-300 rounded-lg p-2.5 text-center focus:ring-2 focus:ring-blue-400" placeholder="0">
+                                    <span class="font-medium text-gray-600 text-sm leading-tight">Kali<br>update</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tugas Tambahan (Opsional) -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <label class="block text-sm font-bold text-gray-800 mb-3 border-b pb-2"><i class="fa-solid fa-list-check mr-2 text-blue-500"></i>Tugas Tambahan</label>
+                    <div class="space-y-4 mt-3">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="ttRespon" class="mt-1 w-4 h-4 text-blue-600 rounded">
+                            <div class="w-full">
+                                <span class="font-medium text-sm">Membuat Respon Cepat Kejadian Cuaca Ekstrem</span>
+                                <input type="text" id="ttResponNote" class="w-full text-sm border-b border-gray-300 mt-1 py-1 focus:border-blue-500 focus:outline-none" placeholder="Catatan (Opsional)...">
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="ttAnalisis" class="mt-1 w-4 h-4 text-blue-600 rounded">
+                            <div class="w-full">
+                                <span class="font-medium text-sm">Membuat Analisis Kejadian Cuaca Ekstrem</span>
+                                <input type="text" id="ttAnalisisNote" class="w-full text-sm border-b border-gray-300 mt-1 py-1 focus:border-blue-500 focus:outline-none" placeholder="Catatan (Opsional)...">
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="ttWawancara" class="mt-1 w-4 h-4 text-blue-600 rounded">
+                            <div class="w-full">
+                                <span class="font-medium text-sm">Wawancara Media</span>
+                                <input type="text" id="ttWawancaraNote" class="w-full text-sm border-b border-gray-300 mt-1 py-1 focus:border-blue-500 focus:outline-none" placeholder="Catatan (Opsional)...">
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="ttROB" class="mt-1 w-4 h-4 text-blue-600 rounded">
+                            <div class="w-full">
+                                <span class="font-medium text-sm">Membuat Peringatan Potensi Banjir ROB</span>
+                                <input type="text" id="ttROBNote" class="w-full text-sm border-b border-gray-300 mt-1 py-1 focus:border-blue-500 focus:outline-none" placeholder="Catatan (Opsional)...">
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="ttLainnya" class="mt-1 w-4 h-4 text-blue-600 rounded">
+                            <div class="w-full">
+                                <span class="font-medium text-sm">Tugas Tambahan Lainnya</span>
+                                <input type="text" id="ttLainnyaNote" class="w-full text-sm border-b border-gray-300 mt-1 py-1 focus:border-blue-500 focus:outline-none" placeholder="Sebutkan (Ketik)...">
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Catatan Selama Dinas -->
+            <div>
+                <label class="block text-sm font-semibold mb-1 text-gray-700">Catatan Selama Dinas/Sif</label>
+                <textarea id="catatanDinas" rows="3" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 shadow-sm transition" placeholder="Ketik kendala atau catatan penting lainnya (otomatis terisi 'Tidak ada kendala' jika dikosongkan)..."></textarea>
+            </div>
+
+            <!-- Tanda Tangan -->
+            <div class="mt-4 text-center">
+                <label class="block text-sm font-semibold mb-2 text-gray-700 text-center">Tanda Tangan Forecaster On Duty <span class="text-red-500">*</span></label>
+                <div class="signature-wrapper shadow-sm">
+                    <canvas id="signaturePad"></canvas>
+                    <button type="button" onclick="clearSignature()" class="absolute top-2 right-2 bg-red-100 text-red-600 px-2.5 py-1 rounded text-xs font-bold hover:bg-red-200 transition"><i class="fa-solid fa-eraser"></i> Ulangi</button>
+                </div>
+                <p class="text-center text-sm font-bold mt-3 text-gray-800" id="ttdName">Nama Forecaster</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3">
+                <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="hidden w-1/3 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition"><i class="fa-solid fa-xmark mr-2"></i> Batal Edit</button>
+                <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transform transition hover:-translate-y-0.5"><i class="fa-solid fa-save mr-2"></i> Simpan Logbook</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sheet / Data Table Section -->
+    <div class="glass-card rounded-2xl p-6 md:p-8">
+        
+        <!-- Controls & Rekap -->
+        <div class="flex flex-col md:flex-row justify-between items-end md:items-center border-b border-gray-200 pb-5 mb-5 gap-4">
+            <div>
+                <h3 class="text-xl font-bold text-blue-800"><i class="fa-solid fa-table-list mr-2"></i> Rekap Logbook</h3>
+                <p class="text-sm text-gray-500 mt-1">Data historis yang bisa dicetak ke PDF</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="bg-gray-100 p-1.5 rounded-lg border flex gap-2">
+                    <select id="filterMonth" class="bg-transparent border-none outline-none font-semibold text-gray-700 text-sm cursor-pointer pr-2">
+                        <option value="1">Januari</option><option value="2">Februari</option>
+                        <option value="3">Maret</option><option value="4">April</option>
+                        <option value="5">Mei</option><option value="6">Juni</option>
+                        <option value="7">Juli</option><option value="8">Agustus</option>
+                        <option value="9">September</option><option value="10">Oktober</option>
+                        <option value="11">November</option><option value="12">Desember</option>
+                    </select>
+                    <span class="text-gray-300">|</span>
+                    <input type="number" id="filterYear" class="bg-transparent border-none outline-none font-semibold text-gray-700 text-sm w-16 text-center" step="1">
+                </div>
+                
+                <button onclick="generatePDF('view')" class="bg-gray-800 hover:bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow transition"><i class="fa-solid fa-eye mr-1"></i> View PDF</button>
+                <button onclick="generatePDF('download')" class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow transition"><i class="fa-solid fa-download mr-1"></i> Download</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100">
+            <table class="min-w-full text-left text-sm whitespace-nowrap">
+                <thead class="uppercase tracking-wider border-b-2 border-gray-300 bg-gray-200 text-gray-900 font-bold">
+                    <tr>
+                        <th class="px-5 py-4 border-x border-gray-200 text-center w-12">No.</th>
+                        <th class="px-5 py-4 border-x border-gray-200">Nama</th>
+                        <th class="px-5 py-4 border-x border-gray-200">Tgl. & Sif</th>
+                        <th class="px-5 py-4 border-x border-gray-200">Catatan Dinas</th>
+                        <th class="px-5 py-4 border-x border-gray-200 text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody" class="border-b border-gray-200 divide-y divide-gray-100">
+                    <!-- Rows populated by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="text-center py-10 bg-white border border-gray-100 rounded-xl mt-4 hidden">
+            <i class="fa-regular fa-folder-open text-4xl text-gray-300 mb-3"></i>
+            <p class="text-gray-500 font-medium">Belum ada data pada bulan ini.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- State & Initializations ---
+    let logs = JSON.parse(localStorage.getItem('forecaster_logs')) || [];
+    let savedNames = JSON.parse(localStorage.getItem('forecaster_names')) || [];
+    let savedFlights = JSON.parse(localStorage.getItem('forecaster_flights')) || [];
+    let selectedFlightArray = [];
+    let editingLogId = null; 
+    
+    // Signature Pad
+    const canvas = document.getElementById('signaturePad');
+    const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255, 255, 255, 0)' });
+
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        canvas.getContext("2d").scale(ratio, ratio);
+        signaturePad.clear();
+    }
+    window.onresize = resizeCanvas;
+    resizeCanvas();
+
+    function clearSignature() {
+        signaturePad.clear();
+    }
+
+    // Default Dates
+    const today = new Date();
+    document.getElementById('inputTanggal').valueAsDate = today;
+    document.getElementById('filterMonth').value = today.getMonth() + 1;
+    document.getElementById('filterYear').value = today.getFullYear();
+    
+    // Sync Name
+    document.getElementById('inputNama').addEventListener('input', (e) => {
+        document.getElementById('ttdName').innerText = e.target.value || 'Nama Forecaster';
+    });
+
+    // --- Dropdown Logic ---
+    function setupDropdown(inputId, dropdownId, storageKey, dataArray) {
+        const input = document.getElementById(inputId);
+        const dropdown = document.getElementById(dropdownId);
+
+        input.addEventListener('focus', renderList);
+        input.addEventListener('input', renderList);
+        
+        document.addEventListener('click', (e) => {
+            if(!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
+        });
+
+        function renderList() {
+            dropdown.innerHTML = '';
+            const val = input.value.trim().toLowerCase();
+            let filtered = dataArray.filter(item => item.toLowerCase().includes(val));
+            
+            if(filtered.length === 0 && val === '') {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            dropdown.classList.remove('hidden');
+
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center px-4 py-2 hover:bg-blue-50 cursor-pointer border-b text-sm transition';
+                
+                const spanText = document.createElement('span');
+                spanText.innerText = item;
+                spanText.className = 'flex-1 font-medium text-gray-700';
+                spanText.onclick = () => {
+                    if(inputId === 'inputFlight') {
+                        addFlightChip(item);
+                        input.value = '';
+                    } else {
+                        input.value = item;
+                        document.getElementById('ttdName').innerText = item;
+                    }
+                    dropdown.classList.add('hidden');
+                };
+
+                const spanDel = document.createElement('span');
+                spanDel.innerHTML = '<i class="fa-solid fa-times text-gray-400 hover:text-red-500 px-2 transition"></i>';
+                spanDel.onclick = (e) => {
+                    e.stopPropagation();
+                    dataArray = dataArray.filter(i => i !== item);
+                    localStorage.setItem(storageKey, JSON.stringify(dataArray));
+                    if(inputId === 'inputNama') savedNames = dataArray;
+                    if(inputId === 'inputFlight') savedFlights = dataArray;
+                    renderList();
+                };
+                div.appendChild(spanText);
+                div.appendChild(spanDel);
+                dropdown.appendChild(div);
+            });
+
+            if(val && !dataArray.some(i => i.toLowerCase() === val)) {
+                const divNew = document.createElement('div');
+                divNew.className = 'px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer text-sm font-bold transition';
+                divNew.innerText = `+ Tambah "${input.value}"`;
+                divNew.onclick = () => {
+                    dataArray.push(input.value.trim());
+                    localStorage.setItem(storageKey, JSON.stringify(dataArray));
+                    if(inputId === 'inputNama') {
+                        savedNames = dataArray;
+                        document.getElementById('ttdName').innerText = input.value;
+                    }
+                    if(inputId === 'inputFlight') {
+                        savedFlights = dataArray;
+                        addFlightChip(input.value.trim());
+                        input.value = '';
+                    }
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(divNew);
+            }
+        }
+    }
+
+    setupDropdown('inputNama', 'dropdownNama', 'forecaster_names', savedNames);
+    setupDropdown('inputFlight', 'dropdownFlight', 'forecaster_flights', savedFlights);
+
+    // --- Flight Chips ---
+    function addFlightChip(flight) {
+        if(!selectedFlightArray.includes(flight)) {
+            selectedFlightArray.push(flight);
+            renderFlightChips();
+        }
+    }
+    function renderFlightChips() {
+        const container = document.getElementById('selectedFlights');
+        container.innerHTML = '';
+        selectedFlightArray.forEach(f => {
+            const chip = document.createElement('span');
+            chip.className = 'bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-200 flex items-center gap-2 shadow-sm';
+            chip.innerHTML = `${f} <i class="fa-solid fa-circle-xmark cursor-pointer hover:text-red-500 text-sm transition" onclick="removeFlightChip('${f}')"></i>`;
+            container.appendChild(chip);
+        });
+    }
+    function removeFlightChip(flight) {
+        selectedFlightArray = selectedFlightArray.filter(f => f !== flight);
+        renderFlightChips();
+    }
+
+    // --- Sif Toggles (Menjalankan dynamic Required state) ---
+    function toggleSif(sif) {
+        document.getElementById('dynamicFields').classList.remove('hidden');
+        document.getElementById('fieldsPagi').classList.add('hidden');
+        document.getElementById('fieldsSiang').classList.add('hidden');
+        document.getElementById('fieldsMalam').classList.add('hidden');
+
+        // Hapus `required` dari semua field shift tersembunyi
+        const allShiftFields = [
+            'pgExpertize', 'pgGelombang', 'pgTAF', 'pgExpertizeNote',
+            'sgExpertize', 'sgTAF', 'sgExpertizeNote',
+            'mlExpertize', 'mlCuaca3', 'mlProspek', 'mlTAF18', 'mlTAF00', 'mlExpertizeNote'
+        ];
+        allShiftFields.forEach(id => document.getElementById(id).required = false);
+
+        if(sif === 'Pagi') {
+            document.getElementById('fieldsPagi').classList.remove('hidden');
+            ['pgExpertize', 'pgGelombang', 'pgTAF'].forEach(id => document.getElementById(id).required = true);
+            if(document.getElementById('pgExpertize').value === 'Catatan') document.getElementById('pgExpertizeNote').required = true;
+        }
+        if(sif === 'Siang') {
+            document.getElementById('fieldsSiang').classList.remove('hidden');
+            ['sgExpertize', 'sgTAF'].forEach(id => document.getElementById(id).required = true);
+            if(document.getElementById('sgExpertize').value === 'Catatan') document.getElementById('sgExpertizeNote').required = true;
+        }
+        if(sif === 'Malam') {
+            document.getElementById('fieldsMalam').classList.remove('hidden');
+            ['mlExpertize', 'mlCuaca3', 'mlProspek', 'mlTAF18', 'mlTAF00'].forEach(id => document.getElementById(id).required = true);
+            if(document.getElementById('mlExpertize').value === 'Catatan') document.getElementById('mlExpertizeNote').required = true;
+        }
+    }
+
+    // Handling `required` on conditional Note inputs
+    ['pgExpertize', 'sgExpertize', 'mlExpertize'].forEach(id => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            const noteInput = document.getElementById(id + 'Note');
+            if (e.target.value === 'Catatan') {
+                noteInput.classList.remove('hidden');
+                noteInput.required = true;
+            } else {
+                noteInput.classList.add('hidden');
+                noteInput.required = false;
+            }
+        });
+    });
+
+    // --- AD/WS Toggle ---
+    document.getElementById('adwsStatus').addEventListener('change', (e) => {
+        const container = document.getElementById('adwsUpdateContainer');
+        if(e.target.value === 'Tidak Ada') {
+            container.classList.add('hidden');
+            container.classList.remove('flex');
+            document.getElementById('adwsUpdate').removeAttribute('required');
+        } else {
+            container.classList.remove('hidden');
+            container.classList.add('flex');
+            document.getElementById('adwsUpdate').setAttribute('required', 'true');
+        }
+    });
+
+    // --- Save & Update Logic ---
+    document.getElementById('logbookForm').addEventListener('submit', (e) => {
+        e.preventDefault(); 
+        
+        if (signaturePad.isEmpty()) {
+            alert("⚠️ Perhatian:\nSilakan isi coretan Tanda Tangan Forecaster On Duty terlebih dahulu sebelum menyimpan!");
+            return; 
+        }
+
+        let namaVal = document.getElementById('inputNama').value.trim();
+        if(namaVal && !savedNames.includes(namaVal)) {
+            savedNames.push(namaVal);
+            localStorage.setItem('forecaster_names', JSON.stringify(savedNames));
+        }
+
+        const sif = document.querySelector('input[name="sif"]:checked').value;
+        const tugasTambahan = [];
+        if(document.getElementById('ttRespon').checked) tugasTambahan.push(`Respon Cepat: ${document.getElementById('ttResponNote').value || '-'}`);
+        if(document.getElementById('ttAnalisis').checked) tugasTambahan.push(`Analisis: ${document.getElementById('ttAnalisisNote').value || '-'}`);
+        if(document.getElementById('ttWawancara').checked) tugasTambahan.push(`Wawancara: ${document.getElementById('ttWawancaraNote').value || '-'}`);
+        if(document.getElementById('ttROB').checked) tugasTambahan.push(`ROB: ${document.getElementById('ttROBNote').value || '-'}`);
+        if(document.getElementById('ttLainnya').checked) tugasTambahan.push(`Lainnya: ${document.getElementById('ttLainnyaNote').value || '-'}`);
+
+        let detailSif = [];
+        
+        // Logika Flight Doc
+        if(selectedFlightArray.length > 0) {
+            detailSif.push(`Flight Doc: ${selectedFlightArray.join(', ')}`);
+        } else {
+            detailSif.push(`Flight Doc: Tidak Ada`);
+        }
+
+        if(sif === 'Pagi') {
+            let exp = document.getElementById('pgExpertize').value;
+            if(exp === 'Catatan') exp = `Catatan (${document.getElementById('pgExpertizeNote').value})`;
+            if(exp) detailSif.push(`Expertize Maritim: ${exp}`);
+            let gel = document.getElementById('pgGelombang').value;
+            if(gel) detailSif.push(`Peringatan Gelombang Tinggi: ${gel}`);
+            let taf = document.getElementById('pgTAF').value;
+            if(taf) detailSif.push(`TAF 06:00 UTC: ${taf}`);
+        } 
+        else if (sif === 'Siang') {
+            let exp = document.getElementById('sgExpertize').value;
+            if(exp === 'Catatan') exp = `Catatan (${document.getElementById('sgExpertizeNote').value})`;
+            if(exp) detailSif.push(`Expertize DigFor: ${exp}`);
+            let taf = document.getElementById('sgTAF').value;
+            if(taf) detailSif.push(`TAF 12:00 UTC: ${taf}`);
+        } 
+        else if (sif === 'Malam') {
+            let exp = document.getElementById('mlExpertize').value;
+            if(exp === 'Catatan') exp = `Catatan (${document.getElementById('mlExpertizeNote').value})`;
+            if(exp) detailSif.push(`Expertize DigFor: ${exp}`);
+            let cuaca = document.getElementById('mlCuaca3').value;
+            let cuacaNote = document.getElementById('mlCuaca3Note').value;
+            if(cuaca) detailSif.push(`Cuaca 3 Harian: ${cuaca} ${cuacaNote ? '('+cuacaNote+')' : ''}`);
+            let prospek = document.getElementById('mlProspek').value;
+            if(prospek) detailSif.push(`Prospek Cuaca: ${prospek}`);
+            let taf18 = document.getElementById('mlTAF18').value;
+            if(taf18) detailSif.push(`TAF 18:00 UTC: ${taf18}`);
+            let taf00 = document.getElementById('mlTAF00').value;
+            if(taf00) detailSif.push(`TAF 00:00 UTC: ${taf00}`);
+        }
+
+        // Logika Nowcasting
+        let nowcasting = document.getElementById('nowcasting').value;
+        if(nowcasting !== '') {
+            if(parseInt(nowcasting) === 0) {
+                detailSif.push(`Nowcasting: Tidak Ada`);
+            } else {
+                detailSif.push(`Nowcasting: ${nowcasting} kali update`);
+            }
+        }
+
+        let adwsStatus = document.getElementById('adwsStatus').value;
+        if(adwsStatus !== 'Tidak Ada') {
+            let adwsUpdate = document.getElementById('adwsUpdate').value || 0;
+            detailSif.push(`AD/WS Warning: ${adwsStatus} (${adwsUpdate} kali update)`);
+        } else {
+            detailSif.push(`AD/WS Warning: Tidak Ada`);
+        }
+
+        if(tugasTambahan.length > 0) detailSif.push(`Tugas Tambahan: \n - ${tugasTambahan.join('\n - ')}`);
+
+        let ttdData = signaturePad.toDataURL('image/png');
+
+        const logData = {
+            id: editingLogId || Date.now().toString(),
+            nama: namaVal,
+            tanggal: document.getElementById('inputTanggal').value,
+            sif: sif,
+            flightDocs: [...selectedFlightArray],
+            pgExpertize: document.getElementById('pgExpertize').value,
+            pgExpertizeNote: document.getElementById('pgExpertizeNote').value,
+            pgGelombang: document.getElementById('pgGelombang').value,
+            pgTAF: document.getElementById('pgTAF').value,
+            sgExpertize: document.getElementById('sgExpertize').value,
+            sgExpertizeNote: document.getElementById('sgExpertizeNote').value,
+            sgTAF: document.getElementById('sgTAF').value,
+            mlExpertize: document.getElementById('mlExpertize').value,
+            mlExpertizeNote: document.getElementById('mlExpertizeNote').value,
+            mlCuaca3: document.getElementById('mlCuaca3').value,
+            mlCuaca3Note: document.getElementById('mlCuaca3Note').value,
+            mlProspek: document.getElementById('mlProspek').value,
+            mlTAF18: document.getElementById('mlTAF18').value,
+            mlTAF00: document.getElementById('mlTAF00').value,
+            nowcasting: document.getElementById('nowcasting').value,
+            adwsStatus: adwsStatus,
+            adwsUpdate: document.getElementById('adwsUpdate').value,
+            ttRespon: document.getElementById('ttRespon').checked,
+            ttResponNote: document.getElementById('ttResponNote').value,
+            ttAnalisis: document.getElementById('ttAnalisis').checked,
+            ttAnalisisNote: document.getElementById('ttAnalisisNote').value,
+            ttWawancara: document.getElementById('ttWawancara').checked,
+            ttWawancaraNote: document.getElementById('ttWawancaraNote').value,
+            ttROB: document.getElementById('ttROB').checked,
+            ttROBNote: document.getElementById('ttROBNote').value,
+            ttLainnya: document.getElementById('ttLainnya').checked,
+            ttLainnyaNote: document.getElementById('ttLainnyaNote').value,
+            detail: detailSif.join('\n'),
+            catatan: document.getElementById('catatanDinas').value.trim() ? document.getElementById('catatanDinas').value.trim() : 'Tidak ada kendala',
+            ttd: ttdData
+        };
+
+		if (editingLogId) {
+            const idx = logs.findIndex(l => l.id === editingLogId);
+            if (idx !== -1) logs[idx] = logData;
+            alert("Logbook berhasil diperbarui!");
+        } else {
+            logs.push(logData);
+            alert("Logbook berhasil disimpan!");
+        }
+
+        localStorage.setItem('forecaster_logs', JSON.stringify(logs));
+
+        // --- KIRIM DATA KE SPREADSHEET & DRIVE ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWucgy0GtQ49W7CFklDvCao3bZmqMdVI_EBG1I8xCI8_8sGm9-2Am9JuRyvrN1ID9U5w/exec";
+
+        // Efek loading tombol saat mengirim
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengirim...';
+        submitBtn.disabled = true;
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(logData)
+        }).then(() => {
+            console.log("Data berhasil terkirim ke Cloud!");
+            cancelEdit();
+            renderTable();
+        }).catch(err => {
+            console.error("Gagal sinkron:", err);
+            cancelEdit();
+            renderTable();
+        }).finally(() => {
+            submitBtn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> Simpan Logbook';
+            submitBtn.disabled = false;
+        });
+    });
+    // --- Edit Mode Handler ---
+    function editLog(id) {
+        const log = logs.find(l => l.id === id);
+        if (!log) return;
+
+        editingLogId = id;
+
+        document.getElementById('inputNama').value = log.nama || '';
+        document.getElementById('inputTanggal').value = log.tanggal || '';
+        document.getElementById('ttdName').innerText = log.nama || 'Nama Forecaster';
+
+        if (log.sif) {
+            const radio = document.querySelector(`input[name="sif"][value="${log.sif}"]`);
+            if (radio) {
+                radio.checked = true;
+                toggleSif(log.sif);
+            }
+        }
+
+        selectedFlightArray = log.flightDocs ? [...log.flightDocs] : [];
+        renderFlightChips();
+
+        // Sif Pagi
+        document.getElementById('pgExpertize').value = log.pgExpertize || '';
+        document.getElementById('pgExpertizeNote').value = log.pgExpertizeNote || '';
+        document.getElementById('pgExpertizeNote').classList.toggle('hidden', log.pgExpertize !== 'Catatan');
+        document.getElementById('pgExpertizeNote').required = (log.pgExpertize === 'Catatan' && log.sif === 'Pagi');
+        
+        document.getElementById('pgGelombang').value = log.pgGelombang || '';
+        document.getElementById('pgTAF').value = log.pgTAF || '';
+
+        // Sif Siang
+        document.getElementById('sgExpertize').value = log.sgExpertize || '';
+        document.getElementById('sgExpertizeNote').value = log.sgExpertizeNote || '';
+        document.getElementById('sgExpertizeNote').classList.toggle('hidden', log.sgExpertize !== 'Catatan');
+        document.getElementById('sgExpertizeNote').required = (log.sgExpertize === 'Catatan' && log.sif === 'Siang');
+
+        document.getElementById('sgTAF').value = log.sgTAF || '';
+
+        // Sif Malam
+        document.getElementById('mlExpertize').value = log.mlExpertize || '';
+        document.getElementById('mlExpertizeNote').value = log.mlExpertizeNote || '';
+        document.getElementById('mlExpertizeNote').classList.toggle('hidden', log.mlExpertize !== 'Catatan');
+        document.getElementById('mlExpertizeNote').required = (log.mlExpertize === 'Catatan' && log.sif === 'Malam');
+        
+        document.getElementById('mlCuaca3').value = log.mlCuaca3 || '';
+        document.getElementById('mlCuaca3Note').value = log.mlCuaca3Note || '';
+        document.getElementById('mlProspek').value = log.mlProspek || '';
+        document.getElementById('mlTAF18').value = log.mlTAF18 || '';
+        document.getElementById('mlTAF00').value = log.mlTAF00 || '';
+
+        // Global
+        document.getElementById('nowcasting').value = log.nowcasting || '';
+        
+        const adws = log.adwsStatus || 'Tidak Ada';
+        document.getElementById('adwsStatus').value = adws;
+        const adwsContainer = document.getElementById('adwsUpdateContainer');
+        if (adws !== 'Tidak Ada') {
+            adwsContainer.classList.remove('hidden');
+            adwsContainer.classList.add('flex');
+            document.getElementById('adwsUpdate').value = log.adwsUpdate || '';
+            document.getElementById('adwsUpdate').required = true;
+        } else {
+            adwsContainer.classList.add('hidden');
+            adwsContainer.classList.remove('flex');
+            document.getElementById('adwsUpdate').value = '';
+            document.getElementById('adwsUpdate').required = false;
+        }
+
+        // Tugas Tambahan
+        document.getElementById('ttRespon').checked = !!log.ttRespon;
+        document.getElementById('ttResponNote').value = log.ttResponNote || '';
+        document.getElementById('ttAnalisis').checked = !!log.ttAnalisis;
+        document.getElementById('ttAnalisisNote').value = log.ttAnalisisNote || '';
+        document.getElementById('ttWawancara').checked = !!log.ttWawancara;
+        document.getElementById('ttWawancaraNote').value = log.ttWawancaraNote || '';
+        document.getElementById('ttROB').checked = !!log.ttROB;
+        document.getElementById('ttROBNote').value = log.ttROBNote || '';
+        document.getElementById('ttLainnya').checked = !!log.ttLainnya;
+        document.getElementById('ttLainnyaNote').value = log.ttLainnyaNote || '';
+
+        document.getElementById('catatanDinas').value = (log.catatan === 'Tidak ada kendala' || log.catatan === '-') ? '' : log.catatan;
+
+        signaturePad.clear();
+        if (log.ttd) {
+            signaturePad.fromDataURL(log.ttd);
+        }
+
+        document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-rotate mr-2"></i> Update Logbook';
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+        document.getElementById('logbookForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        editingLogId = null;
+        document.getElementById('logbookForm').reset();
+        selectedFlightArray = [];
+        renderFlightChips();
+        clearSignature();
+        document.getElementById('dynamicFields').classList.add('hidden');
+        document.getElementById('adwsUpdateContainer').classList.add('hidden');
+        document.getElementById('adwsUpdateContainer').classList.remove('flex');
+        
+        const allShiftFields = [
+            'pgExpertize', 'pgGelombang', 'pgTAF', 'pgExpertizeNote',
+            'sgExpertize', 'sgTAF', 'sgExpertizeNote',
+            'mlExpertize', 'mlCuaca3', 'mlProspek', 'mlTAF18', 'mlTAF00', 'mlExpertizeNote',
+            'adwsUpdate'
+        ];
+        allShiftFields.forEach(id => document.getElementById(id).required = false);
+
+        document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-save mr-2"></i> Simpan Logbook';
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+        document.getElementById('ttdName').innerText = 'Nama Forecaster';
+    }
+
+    // --- Table Render ---
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const emptyState = document.getElementById('emptyState');
+        tbody.innerHTML = '';
+
+        const filterM = document.getElementById('filterMonth').value;
+        const filterY = document.getElementById('filterYear').value;
+
+        let mappedLogs = logs.map((log, index) => ({ log, num: index + 1 }));
+
+        let filteredLogs = mappedLogs.filter(item => {
+            const d = new Date(item.log.tanggal);
+            return (d.getMonth() + 1) == filterM && d.getFullYear() == filterY;
+        });
+
+        if(filteredLogs.length === 0) {
+            emptyState.classList.remove('hidden');
+            document.querySelector('table').parentElement.classList.add('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+            document.querySelector('table').parentElement.classList.remove('hidden');
+
+            filteredLogs.reverse();
+
+            filteredLogs.forEach(item => {
+                const log = item.log;
+                const d = new Date(log.tanggal);
+                const tgl = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/50 transition";
+                tr.innerHTML = `
+                    <td class="px-5 py-4 border-x border-gray-100 text-center font-semibold text-gray-500">${item.num}</td>
+                    <td class="px-5 py-4 border-x border-gray-100 font-bold text-gray-800">${log.nama}</td>
+                    <td class="px-5 py-4 border-x border-gray-100">
+                        <div class="text-sm font-semibold text-gray-700">${tgl}</div>
+                        <div class="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded">${log.sif}</div>
+                    </td>
+                    <td class="px-5 py-4 border-x border-gray-100 text-sm text-gray-600 max-w-xs truncate" title="${log.catatan}">${log.catatan}</td>
+                    <td class="px-5 py-4 border-x border-gray-100 text-center">
+                        <button onclick="editLog('${log.id}')" class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition mr-1"><i class="fa-solid fa-pen-to-square mr-1"></i> Edit</button>
+                        <button onclick="deleteLog('${log.id}')" class="text-red-500 hover:text-white border border-red-500 hover:bg-red-500 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition"><i class="fa-solid fa-trash mr-1"></i> Hapus</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    function deleteLog(id) {
+        if(confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+            if (editingLogId === id) cancelEdit();
+            logs = logs.filter(l => l.id !== id);
+            localStorage.setItem('forecaster_logs', JSON.stringify(logs));
+            renderTable();
+        }
+    }
+
+    // --- PDF Generation ---
+    function generatePDF(action) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4');
+        
+        const filterM = document.getElementById('filterMonth');
+        const filterY = document.getElementById('filterYear');
+        const monthName = filterM.options[filterM.selectedIndex].text;
+        const year = filterY.value;
+
+        let filteredLogs = logs.filter(log => {
+            const d = new Date(log.tanggal);
+            return (d.getMonth() + 1) == filterM.value && d.getFullYear() == year;
+        });
+
+        if(filteredLogs.length === 0) {
+            alert("Tidak ada data pada bulan dan tahun tersebut untuk di-export.");
+            return;
+        }
+
+        const MARGIN = 10;
+        const pageWidth = doc.internal.pageSize.getWidth();
+
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("REKAP LOGBOOK FORECASTER", pageWidth / 2, MARGIN + 5, { align: 'center' });
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Stasiun Meteorologi Kelas II Juwata - ${monthName} ${year}`, pageWidth / 2, MARGIN + 11, { align: 'center' });
+
+        const tableColumn = ["No", "Nama", "Tgl. & Sif", "Detail Pekerjaan", "Catatan Dinas", "TTD"];
+        const tableRows = [];
+
+        filteredLogs.forEach((log, i) => {
+            const d = new Date(log.tanggal);
+            const tgl = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+            const tglSif = `${tgl}\nSif: ${log.sif}`;
+
+            tableRows.push([
+                i + 1,
+                log.nama,
+                tglSif,
+                log.detail,
+                log.catatan,
+                '' 
+            ]);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: MARGIN + 17,
+            theme: 'grid', 
+            margin: { top: MARGIN, right: MARGIN, bottom: MARGIN, left: MARGIN },
+            styles: {
+                fontSize: 9,
+                valign: 'middle',
+                lineColor: [40, 40, 40],
+                lineWidth: 0.2, 
+                cellPadding: 2.5,
+                overflow: 'linebreak'
+            },
+            headStyles: {
+                fillColor: [225, 230, 235],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            columnStyles: {
+                0: { cellWidth: 10, halign: 'center' },
+                1: { cellWidth: 35 },
+                2: { cellWidth: 25, halign: 'center' },
+                3: { cellWidth: 105 },
+                4: { cellWidth: 'auto' },
+                5: { cellWidth: 35, minCellHeight: 22, halign: 'center' }
+            },
+            pageBreak: 'auto',
+            rowPageBreak: 'avoid',
+            didDrawCell: function(data) {
+                if (data.column.index === 5 && data.cell.section === 'body') {
+                    const ttdImage = filteredLogs[data.row.index].ttd; 
+                    
+                    if (ttdImage && ttdImage !== '') {
+                        const imgProps = doc.getImageProperties(ttdImage);
+                        const ratio = imgProps.width / imgProps.height;
+                        
+                        const padding = 2; 
+                        const maxWidth = data.cell.width - (padding * 2); 
+                        const maxHeight = data.cell.height - (padding * 2); 
+                        
+                        let imgWidth = maxWidth;
+                        let imgHeight = imgWidth / ratio;
+                        
+                        if (imgHeight > maxHeight) {
+                            imgHeight = maxHeight;
+                            imgWidth = imgHeight * ratio;
+                        }
+                        
+                        const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+                        const y = data.cell.y + (data.cell.height - imgHeight) / 2;
+                        
+                        doc.addImage(ttdImage, 'PNG', x, y, imgWidth, imgHeight);
+                    }
+                }
+            }
+        });
+
+        const fileName = `Rekap_Logbook_${monthName}_${year}.pdf`;
+        if(action === 'download') {
+            doc.save(fileName);
+        } else if (action === 'view') {
+            const pdfBlob = doc.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            window.open(url, '_blank');
+        }
+    }
+
+    document.getElementById('filterMonth').addEventListener('change', renderTable);
+    document.getElementById('filterYear').addEventListener('change', renderTable);
+    document.getElementById('filterYear').addEventListener('keyup', renderTable);
+
+    renderTable();
+</script>
+
+</body>
+</html>
